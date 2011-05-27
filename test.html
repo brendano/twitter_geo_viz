@@ -3,15 +3,16 @@
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <title>Albers Projection</title>
-    <script type="text/javascript" src="d3/d3.js"></script>
-    <script type="text/javascript" src="d3/d3.geo.js"></script>
-    <script type="text/javascript" src="d3/lib/jquery/jquery.min.js"></script>
-    <script type="text/javascript" src="d3/lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="d3.js"></script>
+    <script type="text/javascript" src="d3.geo.js"></script>
+    <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="us_states.js"></script>
     <style type="text/css">
 
-@import url("d3/lib/jquery-ui/jquery-ui.css");
+@import url("lib/jquery-ui/jquery-ui.css");
 
-body, .ui-widget {
+body {
   font: 14px Helvetica Neue;
 }
 
@@ -19,17 +20,17 @@ svg {
   width: 960px;
   height: 500px;
   border: solid 1px #ccc;
-  background: #eee;
+  background: #f0f0f0;
 }
 
-#states path {
+.states path {
   fill: #ccc;
   stroke: #fff;
 }
 
-#states circle {
-  fill: #fcc;
-  stroke: #000;
+.symbols circle {
+  fill: none;
+  stroke: steelblue;
 }
 
 div {
@@ -39,170 +40,62 @@ div {
     </style>
   </head>
   <body>
-    <h3>Albers Projection</h3>
+    <h3>Twitter Words</h3>
     <script type="text/javascript">
 
 // Our projection.
 var xy = d3.geo.albers(),
     path = d3.geo.path().projection(xy);
 
-d3.select("body")
-  .append("svg:svg")
-  .append("svg:g")
-    .attr("id", "states");
+var svg = d3.select("body")
+  .append("svg:svg");
+  
+var states = svg.append("svg:g")
+  .attr('class', 'states');
 
-d3.json("d3/data/us-states.json", function(collection) {
-  d3.select("#states")
-    .selectAll("path")
-      .data(collection.features)
+var symbols = svg.append("svg:g")
+  .attr('class', 'symbols');
+
+function render_geo(collection) {
+  states.selectAll("path")
+      .data(us_states.features)
     .enter().append("svg:path")
       .attr("d", path);
-  d3.select("#states")
-    .append("svg:circle")
-      .attr("r", 10)
-      .attr("transform", "translate(" + xy(xy.origin()).join(",") + ")")
-});
-
-function refresh() {
-  d3.selectAll("#states path")
-      .attr("d", path);
-  d3.select("#states circle")
-      .attr("transform", "translate(" + xy(xy.origin()).join(",") + ")")
-  d3.select("#parallels span")
-      .text(xy.parallels());
-  d3.select("#lon span")
-      .text(xy.origin()[0]);
-  d3.select("#lat span")
-      .text(xy.origin()[1]);
-  d3.select("#scale span")
-      .text(xy.scale());
-  d3.select("#translate-x span")
-      .text(xy.translate()[0]);
-  d3.select("#translate-y span")
-      .text(xy.translate()[1]);
 }
 
-    </script><p>
-    <!-- <div id="lon">origin.longitude: <span>-98</span></div> -->
-    <!-- <div id="lat">origin.latitude: <span>38</span></div><p> -->
-    <div id="parallels">parallels: <span>29.5,45.5</span></div><p>
-    <div id="scale">scale: <span>1000</span></div><p>
-    <div id="translate-x">translate.x: <span>480</span></div>
-    <div id="translate-y">translate.y: <span>250</span></div>
-    <script type="text/javascript">
+render_geo(us_states);
 
-$("#parallels").slider({
-  range: true,
-  min: -90,
-  max: 90,
-  step: 1e-1,
-  values: [29.5, 45.5],
-  slide: function(event, ui) {
-    xy.parallels(ui.values);
-    refresh();
-  }
-});
+var userlocs = [[26734, [36.94397913281248, -76.315979109375078]], [9016, [33.49582000000008, -112.07163900000046]], [63317, [42.656560000000006, -70.609065000000029]], [23944, [42.753361999999981, -84.452758000000102]], [1322, [35.888141999999817, -78.546501000000376]], [26262, [33.431575999999978, -111.94274899999998]], [72702, [35.928257000000016, -78.93501999999998]], [2952, [40.671604242339988, -73.928469431755303]], [15802, [42.154733999999841, -71.2733130000003]], [63415, [44.166298000000047, -88.463165000000089]], [12079, [42.976813557256726, -81.243986435929159]], [12594, [41.519999999999989, -87.47999999999989]], [1061, [42.989617999999801, -85.826395000000034]], [272, [34.981918036269491, -78.911590735751275]], [9600, [38.997193999999993, -77.026560999999916]], [47827, [42.076869999999992, -87.924751000000001]], [66562, [49.922427178571411, -97.123132285714277]], [13350, [40.789470259259296, -73.342111691357772]], [21374, [33.643105265306133, -111.92369277551025]], [46514, [44.947663333333338, -93.261098444444443]], [28142, [44.653763000000019, -63.630415000000042]], [2228, [42.643780999999947, -71.305701999999798]], [2016, [29.911560136363711, -95.556119164502405]], [42807, [41.501460890410968, -81.643135986301431]], [62660, [35.446393999999998, -80.535264961538445]], [23647, [35.749097539682552, -78.613244087301595]], [51034, [38.069836000000002, -84.475554000000059]], [53370, [33.256908999999986, -87.511490000000052]], [1327, [41.590366299999943, -87.118319012499768]], [53075, [37.116012999999988, -87.919785000000033]]];
 
-$("#lon").slider({
-  min: -180,
-  max: 180,
-  step: 1e-1,
-  value: -98,
-  slide: function(event, ui) {
-    var origin = xy.origin();
-    origin[0] = ui.value;
-    xy.origin(origin);
-    refresh();
-  }
-});
+userlocs.forEach(function(d) {
+  d[1] = d[1].reverse();
+})
 
-$("#lat").slider({
-  min: -90,
-  max: 90,
-  step: 1e-1,
-  value: 38,
-  slide: function(event, ui) {
-    var origin = xy.origin();
-    origin[1] = ui.value;
-    xy.origin(origin);
-    refresh();
-  }
-});
-
-$("#scale").slider({
-  min: 0,
-  max: 3000,
-  value: 1000,
-  slide: function(event, ui) {
-    xy.scale(ui.value);
-    refresh();
-  }
-});
-
-$("#translate-x").slider({
-  min: -2000,
-  max: 2000,
-  value: 480,
-  slide: function(event, ui) {
-    var translate = xy.translate();
-    translate[0] = ui.value;
-    xy.translate(translate);
-    refresh();
-  }
-});
-
-$("#translate-y").slider({
-  min: -2000,
-  max: 2000,
-  value: 250,
-  slide: function(event, ui) {
-    var translate = xy.translate();
-    translate[1] = ui.value;
-    xy.translate(translate);
-    refresh();
-  }
-});
-
-
-
-/* userlocs = [[26734, [36.94397913281248, -76.315979109375078]], [9016, [33.49582000000008, -112.07163900000046]], [63317, [42.656560000000006, -70.609065000000029]], [23944, [42.753361999999981, -84.452758000000102]], [1322, [35.888141999999817, -78.546501000000376]], [26262, [33.431575999999978, -111.94274899999998]], [72702, [35.928257000000016, -78.93501999999998]], [2952, [40.671604242339988, -73.928469431755303]], [15802, [42.154733999999841, -71.2733130000003]], [63415, [44.166298000000047, -88.463165000000089]], [12079, [42.976813557256726, -81.243986435929159]], [12594, [41.519999999999989, -87.47999999999989]], [1061, [42.989617999999801, -85.826395000000034]], [272, [34.981918036269491, -78.911590735751275]], [9600, [38.997193999999993, -77.026560999999916]], [47827, [42.076869999999992, -87.924751000000001]], [66562, [49.922427178571411, -97.123132285714277]], [13350, [40.789470259259296, -73.342111691357772]], [21374, [33.643105265306133, -111.92369277551025]], [46514, [44.947663333333338, -93.261098444444443]], [28142, [44.653763000000019, -63.630415000000042]], [2228, [42.643780999999947, -71.305701999999798]], [2016, [29.911560136363711, -95.556119164502405]], [42807, [41.501460890410968, -81.643135986301431]], [62660, [35.446393999999998, -80.535264961538445]], [23647, [35.749097539682552, -78.613244087301595]], [51034, [38.069836000000002, -84.475554000000059]], [53370, [33.256908999999986, -87.511490000000052]], [1327, [41.590366299999943, -87.118319012499768]], [53075, [37.116012999999988, -87.919785000000033]]] ; */
-
-function load_userlocs(month, wordid) {
-  var url = ("http://localhost/geo2/web/get.cgi?http://www.ark.cs.cmu.edu/twigeo/geo2_data/v5_months/invert/" + 
-    month + "/word=" + wordid + ".userlocs" );
-  console.log(url);
-  $.ajax({
-    url: url,
-    success: function(resp) {
-      var parts = resp.split("\t");
-      var userlocs = JSON.parse(parts[ parts.length - 1 ]);
-      plot_userlocs(userlocs)
-    }
-  });
-}
+plot_userlocs(userlocs);
 
 function plot_userlocs(userlocs) {
-  jQuery.each(userlocs, function(i, userloc) { 
-      var user=userloc[0];
-      var lat = userloc[1][0];
-      var lon = userloc[1][1];
-      /* console.log("lat lon " + lat + " " + lon); */
-
-    d3.select("#states")
-      .append("svg:circle")
-      .attr("class", "userloc")
-      .attr("r", 5)
-      .attr("transform", "translate(" + xy([lon, lat]).join(",") + ")")
-
-  })
+  var sel = symbols.selectAll('circle').data(userlocs);
+  
+  function transformer(d) {
+    return "translate(" + xy(d[1]).join(",") + ")";
+  }
+  
+  sel.enter().append("svg:circle")
+    .attr("r", 5)
+    .attr("transform", transformer);
+    
+  sel.attr("transform", transformer);
+  
+  sel.exit().remove();
 }
-
-/* $.ajax({ */
-/* url: "http://localhost/geo2/web/get.cgi?http://www.ark.cs.cmu.edu/twigeo/geo2_data/v5_months/invert/2010-05/word=30000.userlocs", */
-/* success: console.log */
-/* }) */
-
-
     </script>
   </body>
 </html>
+
+
+
+
+
+
+
+
