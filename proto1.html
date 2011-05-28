@@ -2,7 +2,7 @@
 <html>
   <head>
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
-    <title>Albers Projection</title>
+    <title>Twitter Words</title>
     <script type="text/javascript" src="d3.js"></script>
     <script type="text/javascript" src="d3.geo.js"></script>
     <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
@@ -69,15 +69,14 @@ div {
           return "translate(" + xy(d).join(",") + ")";
         }
         
-        var popInTime = 5000;
-        var popInterval = popInTime / userlocs.length;
+        var opacity = (1-(userlocs.length / 5000)) * 0.9 + 0.1;
         
         var sel = d3.select('g.' + classStr).selectAll('circle').data(userlocs);
 
         sel.enter().append("svg:circle")
           .attr("r", 3)
           .attr("transform", transformer)
-          .attr("stroke-opacity", 0.3);
+          .attr("stroke-opacity", opacity);
           /*
             .transition()
             .duration(0)
