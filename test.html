@@ -8,6 +8,7 @@
     <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
     <script type="text/javascript" src="lib/jquery-ui/jquery-ui.min.js"></script>
     <script type="text/javascript" src="us_states.js"></script>
+    <script type="text/javascript" src="vocab.js"></script>
     <style type="text/css">
 
 @import url("lib/jquery-ui/jquery-ui.css");
@@ -30,7 +31,6 @@ svg {
 
 .symbols circle {
   fill: none;
-  stroke: steelblue;
 }
 
 div {
@@ -38,75 +38,140 @@ div {
 }
 
     </style>
+    <script type="text/javascript">
+
+    $(function() {
+      // Our projection.
+      var xy = d3.geo.albers(),
+          path = d3.geo.path().projection(xy)
+          colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+
+      var svg = d3.select("div#cont")
+        .append("svg:svg");
+
+      var states = svg.append("svg:g")
+        .attr('class', 'states');
+        
+      var legend = svg.append("svg:g")
+        .attr('class', 'legend');
+
+      function render_geo(collection) {
+        states.selectAll("path")
+            .data(us_states.features)
+          .enter().append("svg:path")
+            .attr("d", path);
+      }
+
+      render_geo(us_states);
+
+      function plot_userlocs(userlocs, classStr) {
+        function transformer(d) {
+          return "translate(" + xy(d).join(",") + ")";
+        }
+        
+        var popInTime = 5000;
+        var popInterval = popInTime / userlocs.length;
+        
+        var sel = d3.select('g.' + classStr).selectAll('circle').data(userlocs);
+
+        sel.enter().append("svg:circle")
+          .attr("r", 3)
+          .attr("transform", transformer)
+          .attr("stroke-opacity", 0.3);
+          /*
+            .transition()
+            .duration(0)
+            .delay(function(d,i) { return i*popInterval; })
+            .attr("stroke-opacity", 0.3);
+          */
+
+        sel.attr("transform", transformer);
+
+        sel.exit().remove();
+        console.log('finished', classStr, userlocs.length)
+      }
+
+      function find(str) {
+        var words = str.split(/\s*[,;]\s*/);
+        var goodIds = []
+        for (var i=0; i < words.length; i++) {
+          var w = words[i];
+          if (w.length === 0) continue;
+          if (vocab[w] !== undefined) {
+            goodIds.push({ id: vocab[w], word: w });
+          } else {
+            console.log('Unknown word:', w);
+          }
+        }
+        
+        var sel = svg.selectAll('g.symbols').data(goodIds);
+        
+        sel.enter().append("svg:g")
+          .attr('class', function(d,i) { return 'symbols word' + (i+1); })
+          .style('stroke', function(d,i) { return colors[i]; });
+        
+        sel.exit().remove();
+        
+        
+        var legendRectSel = legend.selectAll('rect').data(goodIds);
+        
+        legendRectSel.enter().append("svg:rect")
+          .style('fill', function(d,i) { return colors[i]; })
+          .attr('width', 15)
+          .attr('height', 15)
+          .attr('x', 10)
+          .attr('y', function(d,i) { return 460 - i*20; });
+        
+        legendRectSel.exit().remove();
+        
+        
+        var legendTextSel = legend.selectAll('text').data(goodIds);
+        
+        legendTextSel.enter().append("svg:text")
+          .attr('x', 30)
+          .attr('y', function(d,i) { return 472 - i*20; })
+          .text(function(d) { return d.word; });
+        
+        legendTextSel.text(function(d) { return d.word; });
+        legendTextSel.exit().remove();
+        
+        for (var i = 0; i < goodIds.length; i++) {
+          $.ajax({
+            url: 'http://www.ark.cs.cmu.edu/twigeo/api/query.cgi?wordid=' + goodIds[i].id + '&callback=?',
+            dataType: 'jsonp',
+            context: { classStr: 'word' + (i+1), word: goodIds[i].word },
+            success: function(json) {
+              console.log("got", this.classStr, this.word);
+              if (json.status === 'success') {
+                var locs = [];
+                json.data.forEach(function(d) {
+                  locs.push(d.locs);
+                })
+                locs = [].concat.apply([], locs);
+                console.log(locs.length);
+                locs = locs.slice(0, 5000);
+                plot_userlocs(locs, this.classStr);
+              } else {
+                // handle this!
+              }
+            }
+          });
+        };
+      }
+      
+      var input = $("#input");
+      $('#go').click(function() {
+        find(input.val());
+      });
+    });
+
+    </script>
   </head>
   <body>
     <h3>Twitter Words</h3>
-    <script type="text/javascript">
-
-// Our projection.
-var xy = d3.geo.albers(),
-    path = d3.geo.path().projection(xy);
-
-var svg = d3.select("body")
-  .append("svg:svg");
-  
-var states = svg.append("svg:g")
-  .attr('class', 'states');
-
-var symbols = svg.append("svg:g")
-  .attr('class', 'symbols');
-
-function render_geo(collection) {
-  states.selectAll("path")
-      .data(us_states.features)
-    .enter().append("svg:path")
-      .attr("d", path);
-}
-
-render_geo(us_states);
-
-function plot_userlocs(userlocs) {
-  var sel = symbols.selectAll('circle').data(userlocs);
-  
-  function transformer(d) {
-    return "translate(" + xy(d).join(",") + ")";
-  }
-  
-  sel.enter().append("svg:circle")
-    .attr("r", 4)
-    //.attr("transform", function() { return "translate(" + (960*Math.random()) + "," + (500*Math.random()) + ")" })
-    .attr("transform", transformer)
-    .attr("opacity", 0)
-      .transition()
-      .duration(500)
-      .delay(function(d,i) { return i*10; })
-      .attr("transform", transformer)
-      .attr("opacity", 1);
-    
-    
-  sel.attr("transform", transformer);
-  
-  sel.exit().remove();
-}
-
-$.ajax({
-  url: 'http://www.ark.cs.cmu.edu/twigeo/api/query.cgi?wordid=80000&callback=?',
-  dataType: 'jsonp',
-  success: function(json) {
-    if (json.status === 'success') {
-      var locs = [];
-      json.data.forEach(function(d) {
-        locs.push(d.locs);
-      })
-      locs = [].concat.apply([], locs);
-      plot_userlocs(locs)
-    } else {
-      // handle this!
-    }
-  }
-})
-
-    </script>
+    <div id="cont"></div>
+    <input id="input" type="text" value="poo,kk"/>
+    <button id="go">Find</button>
   </body>
 </html>
 
