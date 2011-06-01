@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
+    <title>Twitter Words</title>
+    <script type="text/javascript" src="d3.js"></script>
+    <script type="text/javascript" src="d3.geo.js"></script>
+    <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
+    <script type="text/javascript" src="lib/jquery-ui/jquery-ui.min.js"></script>
+    <script type="text/javascript" src="us_counties.js"></script>
+    <script type="text/javascript" src="vocab.js"></script>
+    <style type="text/css">
+
+@import url("lib/jquery-ui/jquery-ui.css");
+
+body {
+  font: 14px Helvetica Neue;
+}
+
+svg {
+  width: 960px;
+  height: 500px;
+  border: solid 1px #ccc;
+  background: #f0f0f0;
+}
+
+.states path {
+  fill: #ccc;
+  stroke: #fff;
+}
+
+.symbols circle {
+  fill: none;
+}
+
+div {
+  width: 960px;
+}
+
+    </style>
+    <script type="text/javascript">
+
+    $(function() {
+      // Our projection.
+      var xy = d3.geo.albers(),
+          path = d3.geo.path().projection(xy)
+          colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+
+      var svg = d3.select("div#cont")
+        .append("svg:svg");
+
+      window.states = svg.append("svg:g")
+        .attr('class', 'states');
+        
+      var legend = svg.append("svg:g")
+        .attr('class', 'legend');
+
+      function render_geo() {
+        states.selectAll("path")
+            .data(us_counties.features)
+          .enter().append("svg:path")
+            .attr("d", path);
+      }
+
+      render_geo();
+
+      function find(str) {
+        var words = str.split(/\s+/).slice(0,2);
+        var goodIds = []
+        for (var i=0; i < words.length; i++) {
+          var w = words[i];
+          if (w.length === 0) continue;
+          if (vocab[w] !== undefined) {
+            goodIds.push({ id: vocab[w], word: w });
+          } else {
+            console.log('Unknown word:', w);
+          }
+        }
+  
+        var legendRectSel = legend.selectAll('rect').data(goodIds);
+        
+        legendRectSel.enter().append("svg:rect")
+          .style('fill', function(d,i) { return colors[i]; })
+          .attr('width', 15)
+          .attr('height', 15)
+          .attr('x', 10)
+          .attr('y', function(d,i) { return 460 - i*20; });
+        
+        legendRectSel.exit().remove();
+        
+        
+        var legendTextSel = legend.selectAll('text').data(goodIds);
+        
+        legendTextSel.enter().append("svg:text")
+          .attr('x', 30)
+          .attr('y', function(d,i) { return 472 - i*20; })
+          .text(function(d) { return d.word; });
+        
+        legendTextSel.text(function(d) { return d.word; });
+        legendTextSel.exit().remove();
+        
+        $.ajax({
+          url: 'http://www.ark.cs.cmu.edu/twigeo/api/query.cgi?wordids=' + goodIds.map(function(d) { return d.id }).join(',') + '&callback=?',
+          dataType: 'jsonp',
+          success: function(json) {
+            if (json.status === 'success') {
+              window.by_county = json.data.by_county;
+              for (var id in by_county) {
+                var total = {}
+                goodIds.forEach(function(d) { 
+                  total[d.id] = 0;
+                })
+                by_county[id].by_month.forEach(function(d) {
+                  for (var wid in d.word_user_counts) {
+                    total[wid] += d.word_user_counts[wid];
+                  }
+                })
+                by_county[id].total = total
+              }
+              
+              if (goodIds.length < 2) return;
+              
+              console.log('here');
+              var id1 = goodIds[0].id;
+              var id2 = goodIds[1].id;
+              
+              var col = d3.scale.linear().domain([-3,3]).range(["#ff0000", "#00ff00"])
+              states.selectAll("path")
+                .style('fill', function(d) {
+                  var c = by_county[d.id];
+                  if (c) {
+                    var t = c.total;
+                    return col(Math.log( (t[id1]+1) / (t[id2]+1) ) / Math.LN10);
+                  } else {
+                    return 'white';
+                  }
+                })
+            } else {
+              // handle this!
+            }
+          }
+        });
+      }
+      
+      var input = $("#input");
+      $('#go').click(function() {
+        find(input.val());
+      });
+    });
+
+    </script>
+  </head>
+  <body>
+    <h3>Twitter Words</h3>
+    <div id="cont"></div>
+    <input id="input" type="text" value="poo kk"/>
+    <button id="go">Find</button>
+  </body>
+</html>
+
+
+
+
+
+
+
+
