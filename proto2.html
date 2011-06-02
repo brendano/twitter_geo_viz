@@ -18,6 +18,12 @@ body {
   font: 14px Helvetica Neue;
 }
 
+div#center {
+  width: 960px;
+  margin: auto;
+  text-align: center;
+}
+
 svg {
   width: 960px;
   height: 500px;
@@ -34,6 +40,7 @@ svg {
   fill: none;
   stroke-width: 1px;
   fill-opacity: 0.1;
+  stroke-opacity: 0.8;
 }
 
 div {
@@ -52,7 +59,7 @@ div {
       // Our projection.
       var xy = d3.geo.albers(),
           path = d3.geo.path().projection(xy)
-          colors = ["#ff0000", "#0000ff"];
+          colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
 
       var svg = d3.select("div#cont")
         .append("svg:svg");
@@ -76,7 +83,7 @@ div {
       render_geo();
 
       function find(str) {
-        var words = str.split(/\s+/).slice(0,2);
+        var words = str.split(/\s+/);
         var goodIds = []
         for (var i=0; i < words.length; i++) {
           var w = words[i];
@@ -113,32 +120,51 @@ div {
         window.by_county = null;
         var month = -1;
         
-        function render() {    
+        function render(fresh) {    
           var cross = [];
           us_counties.features.forEach(function(d) {
             for (var wi = 0; wi < goodIds.length; wi++) {
               cross.push({geo: d, wi: wi});
             } 
-          })            
+          })
           
           var sel = overlay.selectAll("circle")
               .data(cross);
           
-          sel.enter().append("svg:circle")
-            .attr("transform", function(d) { return 'translate(' + path.centroid(d.geo).join(',') + ')'; })
-            .style('display', function(d) { return by_county[d.geo.id] ? null : 'none'; })
-            .attr('stroke-opacity', 0.8)
-            .attr('r', function(d) {
-              var c = by_county[d.geo.id]
-              if (c) {
-                var t = (month < 0) ? c.total : c.by_month[month].word_user_counts;
-                return Math.max(1, Math.sqrt(t[goodIds[d.wi].id]));
-              } else {
-                return 3;
-              }
-            })
-            .style('stroke', function(d) { return colors[d.wi]; })
-            .style('fill', function(d) { return colors[d.wi]; });
+          var helper = function() {
+            this
+              .attr("transform", function(d) { return 'translate(' + path.centroid(d.geo).join(',') + ')'; })
+              .style('display', function(d) { return by_county[d.geo.id] ? null : 'none'; })
+              .style('stroke', function(d) { return colors[d.wi]; })
+              .style('fill', function(d) { return colors[d.wi]; });
+              
+            if (fresh) {
+              this.attr('r', function(d) {
+                var c = by_county[d.geo.id]
+                if (c) {
+                  var t = (month < 0) ? c.total : c.by_month[month].word_user_counts;
+                  return Math.max(1, Math.sqrt(t[goodIds[d.wi].id]));
+                } else {
+                  return 3;
+                }
+              })
+            } else {
+              this.transition().duration(100).attr('r', function(d) {
+                var c = by_county[d.geo.id]
+                if (c) {
+                  var t = (month < 0) ? c.total : c.by_month[month].word_user_counts;
+                  return Math.max(1, Math.sqrt(t[goodIds[d.wi].id]));
+                } else {
+                  return 3;
+                }
+              })
+            }
+          }
+          
+          sel.enter().append("svg:circle").call(helper);
+          sel.call(helper);
+          sel.exit().remove();
+
         }
         
         $.ajax({
@@ -160,7 +186,7 @@ div {
                 by_county[id].total = total
               }
               
-              render();
+              render(true);
             } else {
               // json.status !== 'success'
               // handle this!
@@ -174,7 +200,7 @@ div {
           value: 0,
           slide: function(event, ui) {
             month = ui.value;
-            render();
+            render(false);
           }
         });
       }
@@ -188,11 +214,13 @@ div {
     </script>
   </head>
   <body>
-    <h3>Twitter Words</h3>
-    <div id="cont"></div>
-    <div id="slider"></div>
-    <input id="input" type="text" value="af deadass"/>
-    <button id="go">Find</button>
+    <div id="center">
+      <h1>Twitter Words</h1>
+      <div id="cont"></div>
+      <div id="slider"></div>
+      <input id="input" type="text" value="af deadass"/>
+      <button id="go">Find / Compare</button>
+    </div>
   </body>
 </html>
 
