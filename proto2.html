@@ -4,6 +4,7 @@
     <meta http-equiv="Content-Type" content="text/html;charset=utf-8">
     <title>Twitter Words</title>
     <script type="text/javascript" src="d3.js"></script>
+    <script type="text/javascript" src="d3.geom.js"></script>
     <script type="text/javascript" src="d3.geo.js"></script>
     <script type="text/javascript" src="lib/jquery/jquery.min.js"></script>
     <script type="text/javascript" src="lib/jquery-ui/jquery-ui.min.js"></script>
@@ -21,7 +22,7 @@ svg {
   width: 960px;
   height: 500px;
   border: solid 1px #ccc;
-  background: #f0f0f0;
+  background: #f4f4f4;
 }
 
 .states path {
@@ -29,12 +30,19 @@ svg {
   stroke: #fff;
 }
 
-.symbols circle {
+.overlay circle {
   fill: none;
+  stroke-width: 1px;
+  fill-opacity: 0.1;
 }
 
 div {
   width: 960px;
+}
+
+#slider {
+  margin-top: 10px;
+  margin-bottom: 10px;
 }
 
     </style>
@@ -44,13 +52,16 @@ div {
       // Our projection.
       var xy = d3.geo.albers(),
           path = d3.geo.path().projection(xy)
-          colors = ["#1f77b4", "#ff7f0e", "#2ca02c", "#d62728", "#9467bd", "#8c564b", "#e377c2", "#7f7f7f", "#bcbd22", "#17becf"];
+          colors = ["#ff0000", "#0000ff"];
 
       var svg = d3.select("div#cont")
         .append("svg:svg");
 
-      window.states = svg.append("svg:g")
+      var states = svg.append("svg:g")
         .attr('class', 'states');
+        
+      var overlay = svg.append("svg:g")
+        .attr('class', 'overlay');
         
       var legend = svg.append("svg:g")
         .attr('class', 'legend');
@@ -99,12 +110,43 @@ div {
         legendTextSel.text(function(d) { return d.word; });
         legendTextSel.exit().remove();
         
+        window.by_county = null;
+        var month = -1;
+        
+        function render() {    
+          var cross = [];
+          us_counties.features.forEach(function(d) {
+            for (var wi = 0; wi < goodIds.length; wi++) {
+              cross.push({geo: d, wi: wi});
+            } 
+          })            
+          
+          var sel = overlay.selectAll("circle")
+              .data(cross);
+          
+          sel.enter().append("svg:circle")
+            .attr("transform", function(d) { return 'translate(' + path.centroid(d.geo).join(',') + ')'; })
+            .style('display', function(d) { return by_county[d.geo.id] ? null : 'none'; })
+            .attr('stroke-opacity', 0.8)
+            .attr('r', function(d) {
+              var c = by_county[d.geo.id]
+              if (c) {
+                var t = (month < 0) ? c.total : c.by_month[month].word_user_counts;
+                return Math.max(1, Math.sqrt(t[goodIds[d.wi].id]));
+              } else {
+                return 3;
+              }
+            })
+            .style('stroke', function(d) { return colors[d.wi]; })
+            .style('fill', function(d) { return colors[d.wi]; });
+        }
+        
         $.ajax({
           url: 'http://www.ark.cs.cmu.edu/twigeo/api/query.cgi?wordids=' + goodIds.map(function(d) { return d.id }).join(',') + '&callback=?',
           dataType: 'jsonp',
           success: function(json) {
             if (json.status === 'success') {
-              window.by_county = json.data.by_county;
+              by_county = json.data.by_county;
               for (var id in by_county) {
                 var total = {}
                 goodIds.forEach(function(d) { 
@@ -118,44 +160,21 @@ div {
                 by_county[id].total = total
               }
               
-              if (goodIds.length == 1) {
-                var id = goodIds[0].id;
-                var col = d3.scale.linear().domain([0,3]).clamp(true).range(["#ffffff","#0000ff"]);
-                col = col;
-                states.selectAll("path")
-                  .style('fill', function(d) {
-                    var c = by_county[d.id]
-                    if (c) {
-                      return col(c.total[id]);
-                    } else {
-                      return 'white';
-                    }
-                  })
-                
-              } else if (goodIds.length >= 2) {
-                var id1 = goodIds[0].id;
-                var id2 = goodIds[1].id;
-
-                var col = d3.scale.linear().domain([-2,2]).range([colors[0],colors[1]]);
-                states.selectAll("path")
-                  .style('fill', function(d) {
-                    var c = by_county[d.id];
-                    if (c) {
-                      var t = c.total;
-                      var pseudo = 3;
-                      return col(Math.log( (t[id1]+pseudo) / (t[id2]+pseudo) ) / Math.LN10);
-                    } else {
-                      return 'white';
-                    }
-                  });
-              } else {
-                // bad number of goodIds
-              }
-              
+              render();
             } else {
               // json.status !== 'success'
               // handle this!
             }
+          }
+        });
+        
+        $('#slider').slider({
+          min: 0,
+          max: 11,
+          value: 0,
+          slide: function(event, ui) {
+            month = ui.value;
+            render();
           }
         });
       }
@@ -171,7 +190,8 @@ div {
   <body>
     <h3>Twitter Words</h3>
     <div id="cont"></div>
-    <input id="input" type="text" value="poo kk"/>
+    <div id="slider"></div>
+    <input id="input" type="text" value="af deadass"/>
     <button id="go">Find</button>
   </body>
 </html>
