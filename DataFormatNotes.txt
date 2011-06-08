@@ -1,0 +1,22 @@
+JSON response looks like
+
+{
+    status: "success",
+    data: {by_county: $BLA}
+}
+
+$BLA looks like
+
+{
+    $countyID: {
+        by_month: [
+            {
+                month: '2010-01',
+                word_user_counts: {$wordID1: 4, $wordID2: 12, ... },
+                total_user_count: 20
+            },
+            ... one for each month, in sorted order ...
+        ]
+    }
+}
+
