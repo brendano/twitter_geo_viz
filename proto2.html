@@ -168,7 +168,7 @@ div {
         }
         
         $.ajax({
-          url: 'http://www.ark.cs.cmu.edu/twigeo/api/query.cgi?wordids=' + goodIds.map(function(d) { return d.id }).join(',') + '&callback=?',
+          url: 'http://malbec.ark.cs.cmu.edu:8000/?wordids=' + goodIds.map(function(d) { return d.id }).join(',') + '&callback=?',
           dataType: 'jsonp',
           success: function(json) {
             if (json.status === 'success') {
